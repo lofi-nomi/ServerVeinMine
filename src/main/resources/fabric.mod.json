@@ -1,0 +1,28 @@
+{
+	"schemaVersion": 1,
+	"id": "serverveinmine",
+	"version": "${version}",
+	"name": "Server Sided Vein Mine",
+	"description": "Server Sided Vein Mine for Fabric!",
+	"authors": [
+		"NomadNaomie"
+	],
+	"contact": {
+		"homepage": "https://naomie.digital/",
+		"sources": "https://github.com/nomadnaomie/ServerVeinMine"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/serverveinmine/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"digital.naomie.VeinMine"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.14.21",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}
