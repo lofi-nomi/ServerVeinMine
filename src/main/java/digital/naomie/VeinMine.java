@@ -4,17 +4,21 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.command.CommandSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import com.mojang.brigadier.context.CommandContext;
@@ -30,6 +34,8 @@ import org.slf4j.LoggerFactory;
 public class VeinMine implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("serverveinmine");
+    public static HashMap<Block, Block> equivalentBlocks = new HashMap<>();
+
     @Override
     public void onInitialize() {
         LOGGER.info("Server Vein Mine is initializing!");
@@ -49,10 +55,10 @@ public class VeinMine implements ModInitializer {
             }
             throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
         };
-        Supplier<SuggestionProvider<? extends CommandSource>> suggestionProviderSupplier = () -> new BlockSuggestionProvider();
+        Supplier<SuggestionProvider<? extends CommandSource>> suggestionProviderSupplier = BlockSuggestionProvider::new;
         Pair<Supplier<SuggestionProvider<? extends CommandSource>>, CheckedBiFunction<CommandContext<? extends CommandSource>, String, Block, CommandSyntaxException>> pair = 
             new Pair<>(suggestionProviderSupplier, biFunc);
-    
+
 
         new ModConfigBuilder("serverveinmine", VeinMineConfig.class)
                 .registerTypeHierarchyWithSuggestor(
@@ -63,6 +69,23 @@ public class VeinMine implements ModInitializer {
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, entity) -> {
             mineVein(world, pos, state, player);
         });
+//        TODO Implement Bidirectional Hashmap
+        equivalentBlocks.put(Blocks.DEEPSLATE_COAL_ORE, Blocks.COAL_ORE);
+        equivalentBlocks.put(Blocks.COAL_ORE, Blocks.COAL_ORE);
+        equivalentBlocks.put(Blocks.DEEPSLATE_COPPER_ORE, Blocks.COPPER_ORE);
+        equivalentBlocks.put(Blocks.COPPER_ORE, Blocks.COPPER_ORE);
+        equivalentBlocks.put(Blocks.DEEPSLATE_DIAMOND_ORE, Blocks.DIAMOND_ORE);
+        equivalentBlocks.put(Blocks.DIAMOND_ORE, Blocks.DIAMOND_ORE);
+        equivalentBlocks.put(Blocks.DEEPSLATE_EMERALD_ORE, Blocks.EMERALD_ORE);
+        equivalentBlocks.put(Blocks.EMERALD_ORE, Blocks.EMERALD_ORE);
+        equivalentBlocks.put(Blocks.DEEPSLATE_GOLD_ORE, Blocks.GOLD_ORE);
+        equivalentBlocks.put(Blocks.GOLD_ORE, Blocks.GOLD_ORE);
+        equivalentBlocks.put(Blocks.DEEPSLATE_IRON_ORE, Blocks.IRON_ORE);
+        equivalentBlocks.put(Blocks.IRON_ORE, Blocks.IRON_ORE);
+        equivalentBlocks.put(Blocks.DEEPSLATE_LAPIS_ORE, Blocks.LAPIS_ORE);
+        equivalentBlocks.put(Blocks.LAPIS_ORE, Blocks.LAPIS_ORE);
+        equivalentBlocks.put(Blocks.DEEPSLATE_REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE);
+        equivalentBlocks.put(Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE);
     LOGGER.info("Server Vein Mine's config has been loaded");
     }
 
@@ -72,36 +95,60 @@ public class VeinMine implements ModInitializer {
                 || !(player.isSneaking() == VeinMineConfig.ShiftToActivate)) {
             return;
         }
-        LOGGER.info("World is a server world, block is vein mineable, and player is matching sneak value");
         if (player.getMainHandStack().isSuitableFor(state)) {
-            LOGGER.info("Player has suitable tool");
             ArrayList<BlockPos> blocks = new ArrayList<>();
             blocks.add(pos);
             int i = 0;
             while (i < blocks.size()) {
                 BlockPos currentPos = blocks.get(i);
                 for (BlockPos neighbor : new BlockPos[] {
-                        currentPos.north(),
-                        currentPos.south(),
-                        currentPos.east(),
-                        currentPos.west(),
-                        currentPos.up(),
-                        currentPos.down()
+                        currentPos.add(1, 0, 0), // right
+                        currentPos.add(-1, 0, 0), // left
+                        currentPos.add(0, 1, 0), // up
+                        currentPos.add(0, -1, 0), // down
+                        currentPos.add(0, 0, 1), // front
+                        currentPos.add(0, 0, -1), // back
+                        currentPos.add(1, 1, 0), // right-up
+                        currentPos.add(-1, 1, 0), // left-up
+                        currentPos.add(1, -1, 0), // right-down
+                        currentPos.add(-1, -1, 0), // left-down
+                        currentPos.add(1, 0, 1), // right-front
+                        currentPos.add(-1, 0, 1), // left-front
+                        currentPos.add(1, 0, -1), // right-back
+                        currentPos.add(-1, 0, -1), // left-back
+                        currentPos.add(0, 1, 1), // up-front
+                        currentPos.add(0, -1, 1), // down-front
+                        currentPos.add(0, 1, -1), // up-back
+                        currentPos.add(0, -1, -1), // down-back
+                        currentPos.add(1, 1, 1), // right-up-front
+                        currentPos.add(-1, 1, 1), // left-up-front
+                        currentPos.add(1, -1, 1), // right-down-front
+                        currentPos.add(-1, -1, 1), // left-down-front
+                        currentPos.add(1, 1, -1), // right-up-back
+                        currentPos.add(-1, 1, -1), // left-up-back
+                        currentPos.add(1, -1, -1), // right-down-back
+                        currentPos.add(-1, -1, -1) // left-down-back
                 }) {
-                    if (world.getBlockState(neighbor).equals(state) && !blocks.contains(neighbor)) {
+                    Block neighbourBlock = world.getBlockState(neighbor).getBlock();
+                    if ((Objects.equals(neighbourBlock, state.getBlock()) || Objects.equals(equivalentBlocks.getOrDefault(neighbourBlock,null),state.getBlock())) && !blocks.contains(neighbor))
+                    {
                         blocks.add(neighbor);
                     }
                 }
                 i++;
             }
-            LOGGER.info("Blocks to be broken: {}", blocks.size());
+            ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) player;
+            if (blocks.size() > VeinMineConfig.maxBlocks){
+                serverPlayerEntity.sendMessage(Text.of("You're trying to vein mine more blocks than allowed"), true);
+                return;
+            }
             blocks.forEach(block -> {
                 if (!PlayerBlockBreakEvents.BEFORE.invoker().beforeBlockBreak(world, player, pos,
                         world.getBlockState(pos), world.getBlockEntity(pos))) {
                             LOGGER.info("Block ineligible for vein mine");
                     return;
                 } else {
-                    ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) player;
+
                     serverPlayerEntity.interactionManager.tryBreakBlock(block);
                 }
             });

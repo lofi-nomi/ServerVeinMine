@@ -14,6 +14,8 @@ public class VeinMineConfig {
     @Config
     public static boolean ShiftToActivate = true;
     @Config
+    public static int maxBlocks = 64;
+    @Config
     public static ArrayList<Block> veinMineableBlocks = new ArrayList<>(
         List.of(
             Blocks.COAL_ORE,
