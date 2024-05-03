@@ -5,28 +5,20 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.command.CommandSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
-import java.util.function.Supplier;
-
-import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.suggestion.SuggestionProvider;
-
 import dev.xpple.betterconfig.api.ModConfigBuilder;
-import dev.xpple.betterconfig.util.CheckedBiFunction;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,30 +34,39 @@ public class VeinMine implements ModInitializer {
 
         // Adapted from
         // https://raw.githubusercontent.com/xpple/BetterConfig/master/src/testmod/java/dev/xpple/betterconfig/TestMod.java
-
-        CheckedBiFunction<CommandContext<? extends CommandSource>, String, Block, CommandSyntaxException> biFunc = (
-                ctx, name) -> {
-            String blockString = ctx.getArgument(name, String.class);
-            Identifier blockId = Identifier.tryParse(blockString);
-            if (blockId == null) {
-                throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
-            }
-            if (Registries.BLOCK.containsId(blockId)) {
-                return (Block) Registries.BLOCK.get(blockId);
-            }
-            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
-        };
-        Supplier<SuggestionProvider<? extends CommandSource>> suggestionProviderSupplier = BlockSuggestionProvider::new;
-        Pair<Supplier<SuggestionProvider<? extends CommandSource>>, CheckedBiFunction<CommandContext<? extends CommandSource>, String, Block, CommandSyntaxException>> pair = 
-            new Pair<>(suggestionProviderSupplier, biFunc);
-
+//
+//        CheckedBiFunction<CommandContext<? extends CommandSource>, String, Block, CommandSyntaxException> biFunc = (
+//                ctx, name) -> {
+//            String blockString = ctx.getArgument(name, String.class);
+//            Identifier blockId = Identifier.tryParse(blockString);
+//            if (blockId == null) {
+//                throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
+//            }
+//            if (Registries.BLOCK.containsId(blockId)) {
+//                return (Block) Registries.BLOCK.get(blockId);
+//            }
+//            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
+//        };
+//        Supplier<SuggestionProvider<? extends CommandSource>> suggestionProviderSupplier = BlockSuggestionProvider::new;
+//        Pair<Supplier<SuggestionProvider<? extends CommandSource>>, CheckedBiFunction<CommandContext<? extends CommandSource>, String, Block, CommandSyntaxException>> pair =
+//            new Pair<>(suggestionProviderSupplier, biFunc);
+//
 
         new ModConfigBuilder("serverveinmine", VeinMineConfig.class)
-                .registerTypeHierarchyWithSuggestor(
+                .registerTypeHierarchy(
                         Block.class,
                         new BlockAdapter(),
-                        pair)
-                .build();
+                        new BlockSuggestionProvider(), (ctx, name) -> {
+                            String blockString = ctx.getArgument(name, String.class);
+                            Identifier blockId = Identifier.tryParse(blockString);
+                            if (blockId == null) {
+                                throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
+                            }
+                            if (Registries.BLOCK.containsId(blockId)) {
+                                return Registries.BLOCK.get(blockId);
+                            }
+                            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
+                        }).build();
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, entity) -> {
             mineVein(world, pos, state, player);
         });
