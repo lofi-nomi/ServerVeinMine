@@ -16,9 +16,7 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import dev.xpple.betterconfig.api.ModConfigBuilder;
-
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,49 +25,16 @@ public class VeinMine implements ModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger("serverveinmine");
     public static HashMap<Block, Block> equivalentBlocks = new HashMap<>();
+    public VeinMineConfig veinMineConfig;
+    public ArrayList<Block> block_list;
 
     @Override
     public void onInitialize() {
-        LOGGER.info("Server Vein Mine is initializing!");
-
-        // Adapted from
-        // https://raw.githubusercontent.com/xpple/BetterConfig/master/src/testmod/java/dev/xpple/betterconfig/TestMod.java
-//
-//        CheckedBiFunction<CommandContext<? extends CommandSource>, String, Block, CommandSyntaxException> biFunc = (
-//                ctx, name) -> {
-//            String blockString = ctx.getArgument(name, String.class);
-//            Identifier blockId = Identifier.tryParse(blockString);
-//            if (blockId == null) {
-//                throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
-//            }
-//            if (Registries.BLOCK.containsId(blockId)) {
-//                return (Block) Registries.BLOCK.get(blockId);
-//            }
-//            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
-//        };
-//        Supplier<SuggestionProvider<? extends CommandSource>> suggestionProviderSupplier = BlockSuggestionProvider::new;
-//        Pair<Supplier<SuggestionProvider<? extends CommandSource>>, CheckedBiFunction<CommandContext<? extends CommandSource>, String, Block, CommandSyntaxException>> pair =
-//            new Pair<>(suggestionProviderSupplier, biFunc);
-//
-
-        new ModConfigBuilder("serverveinmine", VeinMineConfig.class)
-                .registerTypeHierarchy(
-                        Block.class,
-                        new BlockAdapter(),
-                        new BlockSuggestionProvider(), (ctx, name) -> {
-                            String blockString = ctx.getArgument(name, String.class);
-                            Identifier blockId = Identifier.tryParse(blockString);
-                            if (blockId == null) {
-                                throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
-                            }
-                            if (Registries.BLOCK.containsId(blockId)) {
-                                return Registries.BLOCK.get(blockId);
-                            }
-                            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
-                        }).build();
-        PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, entity) -> {
-            mineVein(world, pos, state, player);
-        });
+        veinMineConfig = VeinMineConfig.loadConfig();
+        block_list = veinMineConfig.veinMineableBlocks.stream()
+        .map(block -> Registries.BLOCK.get(Identifier.of(block)))
+        .collect(Collectors.toCollection(ArrayList::new));
+        PlayerBlockBreakEvents.AFTER.register(((world, player, pos, state, entity) -> mineVein(world, pos, state, player)));
 //        TODO Implement Bidirectional Hashmap
         equivalentBlocks.put(Blocks.DEEPSLATE_COAL_ORE, Blocks.COAL_ORE);
         equivalentBlocks.put(Blocks.COAL_ORE, Blocks.COAL_ORE);
@@ -89,11 +54,11 @@ public class VeinMine implements ModInitializer {
         equivalentBlocks.put(Blocks.REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE);
     LOGGER.info("Server Vein Mine's config has been loaded");
     }
+    
 
     private void mineVein(World world, BlockPos pos, BlockState state, PlayerEntity player) {
-        ArrayList<Block> block_list = VeinMineConfig.veinMineableBlocks;
         if (!(world instanceof ServerWorld) || !(block_list.contains(state.getBlock()))
-                || !(player.isSneaking() == VeinMineConfig.ShiftToActivate)) {
+                || !(player.isSneaking() == veinMineConfig.ShiftToActivate)) {
             return;
         }
         if (player.getMainHandStack().isSuitableFor(state)) {
@@ -139,7 +104,7 @@ public class VeinMine implements ModInitializer {
                 i++;
             }
             ServerPlayerEntity serverPlayerEntity = (ServerPlayerEntity) player;
-            if (blocks.size() > VeinMineConfig.maxBlocks){
+            if (blocks.size() > veinMineConfig.maxBlocks){
                 serverPlayerEntity.sendMessage(Text.of("You're trying to vein mine more blocks than allowed"), true);
                 return;
             }
