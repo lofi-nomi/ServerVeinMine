@@ -30,7 +30,7 @@ dependencies {
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	include modImplementation('dev.xpple:betterconfig:1.2.1')
+	include modImplementation("dev.xpple:betterconfig:${project.betterconfig_version}")
 }
 
 processResources {
