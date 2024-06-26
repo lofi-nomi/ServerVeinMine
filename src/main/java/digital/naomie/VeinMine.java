@@ -100,7 +100,7 @@ public class VeinMine implements ModInitializer {
             ArrayList<BlockPos> blocks = new ArrayList<>();
             blocks.add(pos);
             int i = 0;
-            while (i < blocks.size()) {
+            while (i < blocks.size() && i < VeinMineConfig.maxBlocks){
                 BlockPos currentPos = blocks.get(i);
                 for (BlockPos neighbor : new BlockPos[] {
                         currentPos.add(1, 0, 0), // right
