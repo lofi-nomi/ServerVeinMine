@@ -35,10 +35,14 @@ public class VeinMine implements ModInitializer {
                         new BlockAdapter(),
                         new BlockSuggestionProvider(),
                         (ctx, name) -> {
-                            var blockString = ctx.getArgument(name, String.class);
-                            var blockId = Identifier.tryParse(blockString);
-                            if (blockId == null) throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
-                            if (!Registries.BLOCK.containsId(blockId)) throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
+                            String blockString = ctx.getArgument(name, String.class);
+                            Identifier blockId = Identifier.tryParse(blockString);
+                            if (blockId == null) {
+                                throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
+                            }
+                            if (!Registries.BLOCK.containsId(blockId)) {
+                                throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownArgument().create();
+                            }
                             return Registries.BLOCK.get(blockId);
                         }).build();
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, entity) -> {
@@ -51,23 +55,24 @@ public class VeinMine implements ModInitializer {
     }
 
     private void mineVein(World world, BlockPos pos, @NotNull BlockState state, PlayerEntity player) {
-        var targetBlock = equivalentBlocks.getOrDefault(state.getBlock(), state.getBlock());
-        var checked = new HashSet<BlockPos>();
-        var remaining = new HashSet<BlockPos>();
-        var targets = new HashSet<BlockPos>();
+
+        Block targetBlock = equivalentBlocks.getOrDefault(state.getBlock(), state.getBlock());
+        HashSet<BlockPos> checked = new HashSet<>();
+        HashSet<BlockPos> remaining = new HashSet<>();
+        HashSet<BlockPos> targets = new HashSet<>();
         checked.add(pos);
         remaining.add(pos);
-        var total = 0;
+        int total = 0;
         while (total < VeinMineConfig.maxBlocks && !remaining.isEmpty()) {
-            var currentPos = remaining.iterator().next();
-            for (var x = -1; x <= 1; x++) {
-                for (var y = -1; y <= 1; y++) {
-                    for (var z = -1; z <= 1; z++) {
+            BlockPos currentPos = remaining.iterator().next();
+            for (int x = -1; x <= 1; x++) {
+                for (int y = -1; y <= 1; y++) {
+                    for (int z = -1; z <= 1; z++) {
                         if (Math.abs(x) + Math.abs(y) + Math.abs(z) == 0) continue;
-                        var neighbor = currentPos.add(x, y, z);
+                        BlockPos neighbor = currentPos.add(x, y, z);
                         if (checked.contains(neighbor)) continue;
-                        var neighborType = world.getBlockState(neighbor).getBlock();
-                        var neighbourBlock = equivalentBlocks.getOrDefault(neighborType, neighborType);
+                        Block neighborType = world.getBlockState(neighbor).getBlock();
+                        Block neighbourBlock = equivalentBlocks.getOrDefault(neighborType, neighborType);
                         if (Objects.equals(targetBlock, neighbourBlock)) {
                             targets.add(neighbor);
                             remaining.add(neighbor);
@@ -84,7 +89,9 @@ public class VeinMine implements ModInitializer {
             return;
         }
         targets.forEach(block -> {
-            if (PlayerBlockBreakEvents.BEFORE.invoker().beforeBlockBreak(world, player, pos, world.getBlockState(pos), world.getBlockEntity(pos))) ((ServerPlayerEntity) player).interactionManager.tryBreakBlock(block);
+            if (PlayerBlockBreakEvents.BEFORE.invoker().beforeBlockBreak(world, player, pos, world.getBlockState(pos), world.getBlockEntity(pos))) {
+                ((ServerPlayerEntity) player).interactionManager.tryBreakBlock(block);
+            }
         });
     }
 
@@ -94,7 +101,7 @@ public class VeinMine implements ModInitializer {
         equivalentBlocks.put(Blocks.DEEPSLATE_IRON_ORE, Blocks.IRON_ORE);
         equivalentBlocks.put(Blocks.DEEPSLATE_GOLD_ORE, Blocks.GOLD_ORE);
         equivalentBlocks.put(Blocks.DEEPSLATE_LAPIS_ORE, Blocks.LAPIS_ORE);
-        equivalentBlocks.put(Blocks.DEEPSLATE_REDSTONE_ORE, Blocks.DEEPSLATE_REDSTONE_ORE);
+        equivalentBlocks.put(Blocks.DEEPSLATE_REDSTONE_ORE, Blocks.REDSTONE_ORE);
         equivalentBlocks.put(Blocks.DEEPSLATE_DIAMOND_ORE, Blocks.DIAMOND_ORE);
         equivalentBlocks.put(Blocks.DEEPSLATE_EMERALD_ORE, Blocks.EMERALD_ORE);
     }
